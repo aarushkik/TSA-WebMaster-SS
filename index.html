@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="RHS TSA Space Battle live scores">
+<title>Space Battle — RHS TSA</title>
+<link rel="icon" href="data:,">
+<style>
+  * { box-sizing: border-box; }
+  body { max-width: 760px; margin: 48px auto; padding: 0 20px; background: #111b27; color: #edf1f5; font: 16px Arial, sans-serif; }
+  h1 { margin-bottom: 8px; color: #edbe78; font-size: 32px; }
+  p, small { color: #b0bdcb; line-height: 1.5; }
+  #status { font-size: 13px; margin: 28px 0 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 15px 10px; border-bottom: 1px solid #354251; text-align: left; overflow-wrap: anywhere; }
+  th { color: #b0bdcb; font-size: 13px; }
+  .number { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:first-child td { color: #edbe78; }
+  button, input { font: inherit; padding: 8px; border: 1px solid #576676; border-radius: 3px; }
+  button { cursor: pointer; color: #edf1f5; background: #263648; }
+  input { background: #172432; color: #edf1f5; min-width: 0; }
+  button:disabled { opacity: .5; cursor: wait; }
+  :focus-visible { outline: 2px solid #edbe78; outline-offset: 3px; }
+  form, .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; align-items: end; }
+  label { display: grid; gap: 6px; font-size: 13px; }
+  label input { width: 180px; }
+  #message { color: #edbe78; }
+  #history { max-height: 360px; overflow: auto; }
+  .run { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; border-bottom: 1px solid #354251; align-items: center; }
+  .run span { flex: 1; min-width: 140px; overflow-wrap: anywhere; }
+  details { margin: 24px 0; }
+  summary { cursor: pointer; }
+  a { color: #edbe78; }
+  footer { margin-top: 32px; font-size: 12px; color: #b0bdcb; }
+  [hidden] { display: none !important; }
+  @media (max-width: 480px) { body { margin-top: 28px; } th, td { padding: 12px 6px; } }
+</style>
+</head>
+<body>
+<header><h1>Space Battle</h1><p>RHS TSA · Super Saturday</p></header>
+<main>
+<!--ADMIN-->
+<p id="status" role="status">Connecting…</p>
+<table aria-label="Team rankings"><thead><tr><th>Rank</th><th>Team</th><th class="number">Best score</th><th class="number">Runs</th></tr></thead><tbody id="teams"></tbody></table>
+<p id="empty" hidden>No scores yet. Waiting for the first run.</p>
+<p><small>Highest score wins. Tied scores share a rank. Updates every 3 seconds.</small></p>
+</main>
+<footer>RHS Chapter Qualifier</footer>
+<script>
+const $ = id => document.getElementById(id);
+const admin = Boolean($('admin'));
+const base = location.pathname;
+let paused = false, lastUpdate;
+const make = (tag, text) => { const node = document.createElement(tag); node.textContent = text; return node; };
+async function api(path, method = 'GET', data) {
+  const response = await fetch(path, { method, headers: data ? { 'Content-Type': 'application/json' } : {}, body: data ? JSON.stringify(data) : undefined, signal: AbortSignal.timeout(8000) });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Request failed. Try again.');
+  return result;
+}
+async function refresh() {
+  try {
+    const board = await api('/api/leaderboard');
+    paused = board.paused;
+    lastUpdate = new Date().toLocaleTimeString();
+    $('status').textContent = `${paused ? 'Submissions paused' : 'Live'} · Updated ${lastUpdate}`;
+    $('teams').replaceChildren(...board.teams.map(team => {
+      const row = document.createElement('tr');
+      [team.rank, team.name, team.best.toLocaleString(), team.attempts].forEach((value, i) => {
+        const cell = make('td', value); if (i > 1) cell.className = 'number'; row.append(cell);
+      });
+      return row;
+    }));
+    $('empty').hidden = board.teams.length > 0;
+    if (admin) { $('pause').disabled = false; $('pause').textContent = paused ? 'Resume submissions' : 'Pause submissions'; }
+  } catch {
+    $('status').textContent = `Connection lost.${lastUpdate ? ` Showing scores from ${lastUpdate}.` : ''} Retrying…`;
+  }
+}
+async function run(button, task) {
+  button.disabled = true;
+  try { await task(); await refresh(); await history(); $('message').textContent = 'Saved.'; }
+  catch (error) { $('message').textContent = error.message; }
+  finally { button.disabled = false; }
+}
+async function history() {
+  const data = await api(`${base}/scores`);
+  $('history').replaceChildren(...data.scores.map(score => {
+    const row = make('div', ''); row.className = 'run';
+    const edit = make('button', 'Edit'), remove = make('button', 'Delete');
+    edit.onclick = () => {
+      const name = prompt('Team name:', score.name); if (name === null) return;
+      const value = prompt('Integer score:', score.score); if (value === null) return;
+      if (!value.trim() || !Number.isSafeInteger(Number(value))) { $('message').textContent = 'Enter a whole number.'; return; }
+      run(edit, () => api(`${base}/scores/${score.id}`, 'PATCH', { name, score: Number(value) }));
+    };
+    remove.onclick = () => { if (confirm(`Delete ${score.name}’s score of ${score.score}?`)) run(remove, () => api(`${base}/scores/${score.id}`, 'DELETE')); };
+    row.append(make('span', `${score.name}: ${score.score}`), edit, remove); return row;
+  }));
+  if (!data.scores.length) $('history').textContent = 'No scores yet.';
+  return data.scores;
+}
+if (admin) {
+  $('add').onsubmit = event => { event.preventDefault(); run(event.submitter, async () => {
+    await api(`${base}/scores`, 'POST', { name: $('name').value, score: Number($('score').value) }); $('add').reset();
+  }); };
+  $('pause').onclick = event => run(event.target, () => api(`${base}/settings`, 'POST', { paused: !paused }));
+  $('reload').onclick = event => run(event.target, async () => {});
+  $('reset').onclick = event => { if (prompt('This permanently deletes all scores. Type RESET to confirm:') === 'RESET') run(event.target, () => api(`${base}/reset`, 'POST', { confirmation: 'RESET' })); };
+  $('export').onclick = async () => {
+    try {
+      const scores = (await api(`${base}/scores`)).scores;
+      const cell = value => `"${String(value).replaceAll('"', '""')}"`;
+      const rows = [['name', 'score', 'time'], ...scores.map(s => [/^[=+\-@]/.test(s.name) ? "'" + s.name : s.name, s.score, s.created_at])];
+      const url = URL.createObjectURL(new Blob([rows.map(row => row.map(cell).join(',')).join('\r\n')], { type: 'text/csv' }));
+      const link = make('a', ''); link.href = url; link.download = 'space-battle.csv'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      $('message').textContent = 'CSV exported.';
+    } catch (error) { $('message').textContent = error.message; }
+  };
+  history().catch(error => $('message').textContent = error.message);
+}
+async function poll() { await refresh(); setTimeout(poll, 3000); }
+poll();
+</script>
+</body>
+</html>
