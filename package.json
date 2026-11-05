@@ -1,0 +1,5 @@
+{
+  "name": "rhs-space-battle", "version": "1.0.0", "private": true, "type": "module",
+  "scripts": { "start": "node server/local.js", "dev": "node --watch server/local.js", "build": "node scripts/build.js", "test": "node --test" },
+  "engines": { "node": ">=24" }
+}
