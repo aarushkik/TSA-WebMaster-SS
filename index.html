@@ -51,6 +51,7 @@
 const $ = id => document.getElementById(id);
 const admin = Boolean($('admin'));
 const base = location.pathname;
+const apiOrigin = location.hostname.endsWith('.github.io') ? 'https://rhs-space-battle-qualifier.biggerturaco32.chatgpt.site' : '';
 let paused = false, lastUpdate;
 const make = (tag, text) => { const node = document.createElement(tag); node.textContent = text; return node; };
 async function api(path, method = 'GET', data) {
@@ -61,7 +62,7 @@ async function api(path, method = 'GET', data) {
 }
 async function refresh() {
   try {
-    const board = await api('/api/leaderboard');
+    const board = await api(`${apiOrigin}/api/leaderboard`);
     paused = board.paused;
     lastUpdate = new Date().toLocaleTimeString();
     $('status').textContent = `${paused ? 'Submissions paused' : 'Live'} · Updated ${lastUpdate}`;

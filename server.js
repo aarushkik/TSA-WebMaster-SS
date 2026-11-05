@@ -50,7 +50,7 @@ export async function handle(request, db, html) {
   const path = new URL(request.url).pathname;
   const method = request.method;
   const isAdmin = path === ADMIN_PATH || path.startsWith(`${ADMIN_PATH}/`);
-  const cors = path === '/api/scores' ? { 'Access-Control-Allow-Origin': '*' } : {};
+  const cors = ['/api/scores', '/api/leaderboard'].includes(path) ? { 'Access-Control-Allow-Origin': '*' } : {};
   try {
     if (path === '/api/scores' && method === 'OPTIONS') return new Response(null, { status: 204, headers: { ...cors, 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } });
     if (isAdmin && !['GET', 'HEAD'].includes(method)) {
@@ -75,7 +75,7 @@ export async function handle(request, db, html) {
       }
       const ranked = [...teams.values()].sort((a, b) => b.best - a.best || a.name.localeCompare(b.name));
       ranked.forEach((team, i) => { team.rank = i > 0 && team.best === ranked[i - 1].best ? ranked[i - 1].rank : i + 1; });
-      return json({ teams: ranked, totalScores: scores.length, paused: Boolean(settings[0]?.paused), updatedAt: new Date().toISOString() });
+      return json({ teams: ranked, totalScores: scores.length, paused: Boolean(settings[0]?.paused), updatedAt: new Date().toISOString() }, 200, cors);
     }
     if (path === '/api/scores' && method === 'POST' || path === `${ADMIN_PATH}/scores` && method === 'POST') {
       const data = validateScore(await body(request));
