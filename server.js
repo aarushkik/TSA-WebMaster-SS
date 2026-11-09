@@ -168,13 +168,12 @@ CREATE TABLE settings (id INTEGER PRIMARY KEY CHECK (id = 1), paused INTEGER NOT
 }
 
 if (typeof process !== 'undefined' && process.argv[1] && import.meta.url === (await import('node:url')).pathToFileURL(process.argv[1]).href) {
-  const { readFileSync, mkdirSync, writeFileSync, cpSync } = await import('node:fs');
+  const { readFileSync, mkdirSync, writeFileSync } = await import('node:fs');
   const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
   if (process.argv.includes('--build')) {
     mkdirSync('dist/server', { recursive: true });
     const source = readFileSync(new URL('./server.js', import.meta.url), 'utf8').split('// LOCAL NODE SERVER')[0];
     writeFileSync('dist/server/index.js', source + '\nconst html = ' + JSON.stringify(html) + ';\nexport default { fetch(request, env) { return handle(request, env.DB, html); } };\n');
-    cpSync('.openai', 'dist/.openai', { recursive: true });
     console.log('Built standalone Worker.');
   } else {
     const { createServer } = await import('node:http');

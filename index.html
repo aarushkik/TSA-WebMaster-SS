@@ -44,14 +44,14 @@
 <p id="status" role="status">Connecting…</p>
 <table aria-label="Team rankings"><thead><tr><th>Rank</th><th>Team</th><th class="number">Best score</th><th class="number">Runs</th></tr></thead><tbody id="teams"></tbody></table>
 <p id="empty" hidden>No scores yet. Waiting for the first run.</p>
-<p><small>Highest score wins. Tied scores share a rank. Updates every 3 seconds.</small></p>
+<p><small>Highest score wins. Tied scores share a rank. Updates every 15 seconds.</small></p>
 </main>
 <footer>RHS Chapter Qualifier</footer>
 <script>
 const $ = id => document.getElementById(id);
 const admin = Boolean($('admin'));
 const base = location.pathname;
-const apiOrigin = location.hostname.endsWith('.github.io') ? 'https://rhs-space-battle-qualifier.biggerturaco32.chatgpt.site' : '';
+const apiOrigin = location.hostname.endsWith('.github.io') ? 'https://space-battle.rhs-space-battle.workers.dev' : '';
 let paused = false, lastUpdate;
 const make = (tag, text) => { const node = document.createElement(tag); node.textContent = text; return node; };
 async function api(path, method = 'GET', data) {
@@ -121,7 +121,7 @@ if (admin) {
   };
   history().catch(error => $('message').textContent = error.message);
 }
-async function poll() { await refresh(); setTimeout(poll, 3000); }
+async function poll() { await refresh(); setTimeout(poll, 15000); }
 poll();
 </script>
 </body>

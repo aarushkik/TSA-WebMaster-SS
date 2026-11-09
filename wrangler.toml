@@ -1,0 +1,9 @@
+name = "space-battle"
+main = "dist/server/index.js"
+compatibility_date = "2026-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "space-battle"
+database_id = "2ea17dad-c353-4d8b-9d20-eda3f2949505"
+migrations_dir = "drizzle"
