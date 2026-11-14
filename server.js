@@ -3,7 +3,7 @@ const adminHTML = `<section id="admin">
 <h2>Arena control</h2><p><a href="/">View public leaderboard</a></p>
 <form id="add"><label>Team name<input id="name" required maxlength="60"></label><label>Score<input id="score" type="number" step="1" required></label><button>Add score</button></form>
 <div class="actions"><button id="pause" disabled>Pause submissions</button><button id="reload">Refresh history</button><button id="export">Export CSV</button><button id="reset">Reset tournament</button></div>
-<p id="message" role="status"></p><small>Manual scores work while paused. Export before resetting.</small>
+<p id="message" role="status"></p><small>Manual scores work while paused.</small>
 <details><summary>Edit score history</summary><div id="history"></div></details></section>`;
 
 // Keep this path out of public pages. There is intentionally no login for this event.
